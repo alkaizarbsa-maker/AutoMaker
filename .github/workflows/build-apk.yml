@@ -21,21 +21,18 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-      - name: Install platform and build tools
+      - name: Use preinstalled Android SDK
         run: |
-          yes | sdkmanager --licenses > /dev/null 2>&1 || true
-          for i in 1 2 3; do
-            sdkmanager --install "platform-tools" "platforms;android-34" "build-tools;34.0.0" && break
-            echo "sdkmanager attempt $i failed, retrying..."
-            sleep 10
-          done
-          sdkmanager --list_installed
-          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          ls "$ANDROID_SDK_ROOT"
+          SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
+          "$SDKMANAGER" --install "platform-tools" "platforms;android-34" "build-tools;34.0.0" > /dev/null 2>&1 || echo "Using preinstalled SDK packages as-is"
+          "$SDKMANAGER" --list_installed || true
       - name: Setup Gradle 8.7
         run: |
-          wget -q https://services.gradle.org/distributions/gradle-8.7-bin.zip
+          wget -q --tries=3 https://services.gradle.org/distributions/gradle-8.7-bin.zip
           unzip -q gradle-8.7-bin.zip
           echo "$PWD/gradle-8.7/bin" >> $GITHUB_PATH
       - name: Build debug APK
